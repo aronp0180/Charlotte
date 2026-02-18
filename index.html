@@ -12,7 +12,7 @@
     .header-date { font-size:12px; color:#60A5FA; font-weight:600; letter-spacing:1.5px; text-transform:uppercase; margin-bottom:4px; }
     .header-title { font-size:26px; font-weight:900; color:#F1F5F9; margin-bottom:4px; }
     .header-sub { font-size:14px; color:#94A3B8; }
-    .nav { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-top:18px; }
+    .nav { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-top:18px; }
     .nav-btn { padding:10px 4px; border-radius:10px; border:1px solid #334155; background:#1E293B; color:#94A3B8; font-weight:700; font-size:12px; cursor:pointer; text-align:center; width:100%; }
     .nav-btn.active { background:linear-gradient(135deg,#2563EB,#1D4ED8); color:#fff; border:none; box-shadow:0 2px 12px rgba(37,99,235,.5); }
     .melding { padding:9px 20px; text-align:center; font-weight:600; font-size:14px; display:none; }
@@ -84,7 +84,7 @@
     <button class="nav-btn active" onclick="setTab('taken')">✅ Taken</button>
     <button class="nav-btn" onclick="setTab('agenda')">📅 Agenda</button>
     <button class="nav-btn" onclick="setTab('chat')">💬 Chat</button>
-
+    <button class="nav-btn" onclick="setTab('instellingen')">⚙️ Instellingen</button>
   </div>
 </div>
 
@@ -147,13 +147,34 @@
     </div>
   </div>
 
-
+  <!-- INSTELLINGEN -->
+  <div class="tab" id="tab-instellingen">
+    <div class="card">
+      <h2 style="color:#F1F5F9;font-size:20px;margin-bottom:20px">⚙️ Instellingen</h2>
+      <div class="inst-section">
+        <h3 class="inst-title">🔗 Apps Script URL</h3>
+        <label class="inst-label">Web App URL</label>
+        <input id="script-url" value="https://script.google.com/macros/s/AKfycbx1LJyOVA7x4QuEQr8podM_kSeJPdR0CEhBQbvbN20Kl7Q0Pwn9UXvHU2GigI2TTK0G/exec" readonly style="opacity:.6" />
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:22px">
+        <button class="btn-outline" onclick="testVerbinding()" style="padding:11px 20px">🔍 Test verbinding</button>
+        <button class="btn-outline" onclick="laadAlles()" style="padding:11px 20px">🔄 Vernieuwen</button>
+      </div>
+      <div id="verbinding-resultaat" style="font-size:13px;color:#94A3B8;margin-top:8px"></div>
+      <div class="inst-section" style="margin-top:20px">
+        <p style="color:#60A5FA;font-weight:700;font-size:14px;margin-bottom:10px">ℹ️ Info</p>
+        <div class="step"><span class="step-nr">🔒</span><span>API sleutel staat veilig in Google Script Properties</span></div>
+        <div class="step"><span class="step-nr">🧠</span><span>Chatgeheugen wordt opgeslagen in Apps Script</span></div>
+        <div class="step"><span class="step-nr">📅</span><span>Google Agenda + Outlook ICS worden automatisch geladen</span></div>
+      </div>
+    </div>
+  </div>
 
 </div>
 
 <script>
 // ── CONFIG ────────────────────────────────────────────────────
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx1LJyOVA7x4QuEQr8podM_kSeJPdR0CEhBQbvbN20Kl7Q0Pwn9UXvHU2GigI2TTK0G/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwar_6k3EeIrgUwLPBJnXW_-vv-snKawcXkjCJvwKQ8LWh_GevhJ1uMhuo_D_x_7X5O/exec";
 const CAT_KLEUREN = { Werk:"#3B82F6", Persoonlijk:"#8B5CF6", Gezondheid:"#10B981", Yenz:"#F43F5E" };
 
 // ── STATE ─────────────────────────────────────────────────────
@@ -161,7 +182,7 @@ let taken = [], afspraken = [], afsprakenIcs = [], huidigFilter = "Alles", chatH
 let herkenning = null, luistert = false;
 
 // ── INIT ──────────────────────────────────────────────────────
-window.onload = () => {
+window.onload = async () => {
   document.getElementById("headerDatum").textContent =
     new Date().toLocaleDateString("nl-NL", { weekday:"long", day:"numeric", month:"long", year:"numeric" });
   setupSpreak();
@@ -170,6 +191,9 @@ window.onload = () => {
   laadAlles();
   setInterval(laadAlles, 60000);
 };
+
+// Direct laden zodra script klaar is, zonder op DOM te wachten
+document.addEventListener("DOMContentLoaded", () => { laadAlles(); });
 
 // ── TABS ──────────────────────────────────────────────────────
 function setTab(naam) {
@@ -199,11 +223,19 @@ async function appsScript(body) {
 }
 
 async function testVerbinding() {
+  const el = document.getElementById("verbinding-resultaat");
+  el.textContent = "⏳ Verbinding testen...";
   try {
     const res = await fetch(SCRIPT_URL + "?t=" + Date.now());
     const json = await res.json();
-    toonMelding(json.succes ? `✅ Verbinding werkt! Afspraken: ${json.data?.afspraken?.length||0}, Taken: ${json.data?.taken?.length||0}` : "Fout: " + json.fout, json.succes ? "success" : "error");
-  } catch(e) { toonMelding("❌ Mislukt: " + e.message, "error"); }
+    el.textContent = json.succes
+      ? `✅ Verbinding werkt! Google afspraken: ${json.data?.afspraken?.length||0}, Taken: ${json.data?.taken?.length||0}`
+      : "❌ Fout: " + json.fout;
+    el.style.color = json.succes ? "#34D399" : "#EF4444";
+  } catch(e) {
+    el.textContent = "❌ Mislukt: " + e.message;
+    el.style.color = "#EF4444";
+  }
 }
 
 // ── LADEN ─────────────────────────────────────────────────────

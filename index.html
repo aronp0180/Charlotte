@@ -12,7 +12,7 @@
     .header-date { font-size:12px; color:#60A5FA; font-weight:600; letter-spacing:1.5px; text-transform:uppercase; margin-bottom:4px; }
     .header-title { font-size:26px; font-weight:900; color:#F1F5F9; margin-bottom:4px; }
     .header-sub { font-size:14px; color:#94A3B8; }
-    .nav { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-top:18px; }
+    .nav { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-top:18px; }
     .nav-btn { padding:10px 4px; border-radius:10px; border:1px solid #334155; background:#1E293B; color:#94A3B8; font-weight:700; font-size:12px; cursor:pointer; text-align:center; width:100%; }
     .nav-btn.active { background:linear-gradient(135deg,#2563EB,#1D4ED8); color:#fff; border:none; box-shadow:0 2px 12px rgba(37,99,235,.5); }
     .melding { padding:9px 20px; text-align:center; font-weight:600; font-size:14px; display:none; }
@@ -72,8 +72,6 @@
     .form-row > div { flex:1; }
     .form-row input { margin-bottom:0; }
     label.small { font-size:11px; color:#64748B; font-weight:600; display:block; margin-bottom:4px; }
-    .api-status { font-size:12px; margin-top:6px; font-weight:600; }
-    .api-status.ok { color:#34D399; }
   </style>
 </head>
 <body>
@@ -86,7 +84,7 @@
     <button class="nav-btn active" onclick="setTab('taken')">✅ Taken</button>
     <button class="nav-btn" onclick="setTab('agenda')">📅 Agenda</button>
     <button class="nav-btn" onclick="setTab('chat')">💬 Chat</button>
-    <button class="nav-btn" onclick="setTab('instellingen')">⚙️ Instellingen</button>
+
   </div>
 </div>
 
@@ -96,7 +94,6 @@
 
   <!-- TAKEN -->
   <div class="tab active" id="tab-taken">
-    <div id="geen-url-warn" class="warn-box" style="display:none">💡 Stel uw <strong>Apps Script URL</strong> in via ⚙️ Instellingen.</div>
     <div class="action-bar">
       <button class="btn-primary" onclick="toggleFormulier()">+ Nieuwe taak</button>
       <button class="btn-outline" onclick="laadAlles()">🔄 Vernieuwen</button>
@@ -139,7 +136,6 @@
 
   <!-- CHAT -->
   <div class="tab" id="tab-chat">
-    <div id="geen-api-warn" class="warn-box" style="display:none">💡 Voeg uw <strong>Anthropic API sleutel</strong> in via ⚙️ Instellingen.</div>
     <div class="chat-box">
       <div class="chat-msgs" id="chat-msgs"></div>
       <div class="spraak-status" id="spraak-status">🎤 Luisteren...</div>
@@ -151,64 +147,28 @@
     </div>
   </div>
 
-  <!-- INSTELLINGEN -->
-  <div class="tab" id="tab-instellingen">
-    <div class="card">
-      <h2 style="color:#F1F5F9;font-size:20px;margin-bottom:20px">⚙️ Instellingen</h2>
-      <div class="inst-section">
-        <h3 class="inst-title">🔗 Apps Script URL</h3>
-        <label class="inst-label">Web App URL</label>
-        <input id="script-url" placeholder="https://script.google.com/macros/s/xxx/exec" />
-      </div>
-      <div class="inst-section">
-        <h3 class="inst-title">🤖 Anthropic API Sleutel</h3>
-        <label class="inst-label">API Sleutel (voor Claude chat)</label>
-        <input id="api-key" type="password" placeholder="sk-ant-api03-xxx..." />
-        <div class="api-status" id="api-status"></div>
-        <p style="font-size:12px;color:#475569;margin-top:8px">Haal uw sleutel op via <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a></p>
-      </div>
-      <div style="display:flex;gap:8px;margin-bottom:22px;flex-wrap:wrap">
-        <button class="btn-primary" onclick="slaOp()" style="padding:11px 28px">💾 Opslaan</button>
-        <button class="btn-outline" onclick="testVerbinding()" style="padding:11px 20px">🔍 Test verbinding</button>
-      </div>
-      <div class="inst-section">
-        <p style="color:#60A5FA;font-weight:700;font-size:14px;margin-bottom:10px">🚀 Installatie:</p>
-        <div class="step"><span class="step-nr">1</span><span>Vul uw <strong>Apps Script URL</strong> in</span></div>
-        <div class="step"><span class="step-nr">2</span><span>Maak een API sleutel aan op <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a></span></div>
-        <div class="step"><span class="step-nr">3</span><span>Klik <strong>💾 Opslaan</strong> en ga naar 💬 Chat</span></div>
-      </div>
-    </div>
-  </div>
+
+
 </div>
 
 <script>
-// ── STATE ─────────────────────────────────────────────────────
+// ── CONFIG ────────────────────────────────────────────────────
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx1LJyOVA7x4QuEQr8podM_kSeJPdR0CEhBQbvbN20Kl7Q0Pwn9UXvHU2GigI2TTK0G/exec";
 const CAT_KLEUREN = { Werk:"#3B82F6", Persoonlijk:"#8B5CF6", Gezondheid:"#10B981", Yenz:"#F43F5E" };
-let taken = [], afspraken = [], afsprakenIcs = [], huidigFilter = "Alles", chatHistory = [], geheugen = [];
-const DEFAULT_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby9Ut8wiQAKM_oS_ZePfKnttGEZkxX0mpnWuBrn0IvPII_MnGROUsWBKw0CURdmgb6W/exec";
-let scriptUrl = DEFAULT_SCRIPT_URL, apiKey = "", herkenning = null, luistert = false;
+
+// ── STATE ─────────────────────────────────────────────────────
+let taken = [], afspraken = [], afsprakenIcs = [], huidigFilter = "Alles", chatHistory = [];
+let herkenning = null, luistert = false;
 
 // ── INIT ──────────────────────────────────────────────────────
-window.onload = async () => {
+window.onload = () => {
   document.getElementById("headerDatum").textContent =
     new Date().toLocaleDateString("nl-NL", { weekday:"long", day:"numeric", month:"long", year:"numeric" });
-
-  try { const r = await window.storage.get("tm_script_url"); if (r) scriptUrl = r.value; } catch {}
-  try { const r = await window.storage.get("tm_api_key");    if (r) { apiKey = r.value; document.getElementById("api-key").value = apiKey; } } catch {}
-  document.getElementById("script-url").value = scriptUrl;
-  try { const r = await window.storage.get("tm_geheugen");   if (r) geheugen = JSON.parse(r.value); } catch {}
-
-  if (!scriptUrl) { document.getElementById("geen-url-warn").style.display = "block"; setTab("instellingen"); }
-  if (!apiKey)    document.getElementById("geen-api-warn").style.display = "block";
-
   setupSpreak();
   renderFilters();
   voegChatBericht("assistant", "Goedendag, directeur! 👋\n\nIk kan voor u taken beheren en afspraken aanmaken. Probeer:\n• \"Plan een vergadering morgen om 14:00\"\n• \"Voeg taak toe: offerte maken, Werk, voor vrijdag\"\n\nOf druk op 🎤 om te spreken!");
-
-  if (scriptUrl) {
-    laadAlles();
-    setInterval(laadAlles, 60000);
-  }
+  laadAlles();
+  setInterval(laadAlles, 60000);
 };
 
 // ── TABS ──────────────────────────────────────────────────────
@@ -228,13 +188,29 @@ function toonMelding(tekst, type="success") {
   setTimeout(() => el.style.display = "none", 4000);
 }
 
+// ── API ───────────────────────────────────────────────────────
+async function appsScript(body) {
+  try {
+    const res = await fetch(SCRIPT_URL, { method:"POST", body: JSON.stringify(body) });
+    const data = await res.json();
+    if (!data.succes) throw new Error(data.fout || "Onbekende fout");
+    return data.data;
+  } catch(e) { toonMelding("Fout: " + e.message, "error"); return null; }
+}
+
+async function testVerbinding() {
+  try {
+    const res = await fetch(SCRIPT_URL + "?t=" + Date.now());
+    const json = await res.json();
+    toonMelding(json.succes ? `✅ Verbinding werkt! Afspraken: ${json.data?.afspraken?.length||0}, Taken: ${json.data?.taken?.length||0}` : "Fout: " + json.fout, json.succes ? "success" : "error");
+  } catch(e) { toonMelding("❌ Mislukt: " + e.message, "error"); }
+}
+
 // ── LADEN ─────────────────────────────────────────────────────
 async function laadAlles() {
-  if (!scriptUrl) return;
-
-  // Google agenda + taken
+  // Google taken + afspraken
   try {
-    const res = await fetch(scriptUrl + "?t=" + Date.now());
+    const res = await fetch(SCRIPT_URL + "?t=" + Date.now());
     const data = await res.json();
     if (data.succes) {
       taken = data.data?.taken || [];
@@ -242,54 +218,17 @@ async function laadAlles() {
     }
   } catch(e) { toonMelding("Google laden mislukt: " + e.message, "error"); }
 
-  // ICS agenda (apart, zodat fout hier Google niet blokkeert)
+  // ICS agenda
   try {
-    const res = await fetch(scriptUrl + "?actie=ics&t=" + Date.now());
+    const res = await fetch(SCRIPT_URL + "?actie=ics&t=" + Date.now());
     const buf = await res.arrayBuffer();
     const tekst = new TextDecoder("utf-8").decode(buf);
-    if (tekst.includes("BEGIN:VCALENDAR")) {
-      afsprakenIcs = parseIcs(tekst);
-    }
+    if (tekst.includes("BEGIN:VCALENDAR")) afsprakenIcs = parseIcs(tekst);
   } catch(e) { toonMelding("ICS laden mislukt: " + e.message, "error"); }
 
   renderTaken();
   renderStats();
   renderAfspraken();
-}
-
-// ── APPS SCRIPT POST ──────────────────────────────────────────
-async function appsScript(body) {
-  if (!scriptUrl) { toonMelding("Vul eerst uw Apps Script URL in.", "error"); return null; }
-  try {
-    const res = await fetch(scriptUrl, { method:"POST", body: JSON.stringify(body) });
-    const data = await res.json();
-    if (!data.succes) throw new Error(data.fout || "Onbekende fout");
-    return data.data;
-  } catch(e) { toonMelding("Fout: " + e.message, "error"); return null; }
-}
-
-// ── INSTELLINGEN ──────────────────────────────────────────────
-async function slaOp() {
-  scriptUrl = document.getElementById("script-url").value.trim();
-  apiKey    = document.getElementById("api-key").value.trim();
-  try { await window.storage.set("tm_script_url", scriptUrl); } catch {}
-  try { await window.storage.set("tm_api_key", apiKey); } catch {}
-  document.getElementById("geen-url-warn").style.display = scriptUrl ? "none" : "block";
-  document.getElementById("geen-api-warn").style.display = apiKey ? "none" : "block";
-  if (apiKey) { document.getElementById("api-status").textContent = "✓ API sleutel opgeslagen"; document.getElementById("api-status").className = "api-status ok"; }
-  toonMelding("Instellingen opgeslagen! 🎉");
-  setTab("chat");
-  if (scriptUrl) setTimeout(laadAlles, 500);
-}
-
-async function testVerbinding() {
-  const url = document.getElementById("script-url").value.trim();
-  if (!url) { toonMelding("Vul eerst een URL in.", "error"); return; }
-  try {
-    const res = await fetch(url + "?t=" + Date.now());
-    const json = await res.json();
-    toonMelding(json.succes ? `✅ Verbinding werkt! Afspraken: ${json.data?.afspraken?.length||0}, Taken: ${json.data?.taken?.length||0}` : "Fout: " + json.fout, json.succes ? "success" : "error");
-  } catch(e) { toonMelding("❌ Mislukt: " + e.message, "error"); }
 }
 
 // ── TAKEN ─────────────────────────────────────────────────────
@@ -306,9 +245,7 @@ async function voegTaakToe(taakData) {
   if (result) {
     taken.unshift(result); renderTaken(); renderStats();
     if (!taakData) {
-      document.getElementById("nieuw-titel").value = "";
-      document.getElementById("nieuw-omsch").value = "";
-      document.getElementById("nieuw-datum").value = "";
+      ["nieuw-titel","nieuw-omsch","nieuw-datum"].forEach(id => document.getElementById(id).value = "");
       document.getElementById("nieuw-formulier").style.display = "none";
     }
     toonMelding("Taak toegevoegd! ✅");
@@ -344,8 +281,8 @@ function taakKaart(t) {
         <span class="taak-titel ${t.voltooid?'voltooid':''}">${t.titel}</span>
         <span class="badge" style="background:${kl}22;color:${kl};border:1px solid ${kl}44">${t.categorie||""}</span>
       </div>
-      ${t.omschrijving ? `<div class="taak-omsch">${t.omschrijving}</div>` : ""}
-      ${t.vervaldatum  ? `<div class="taak-datum">📅 ${new Date(t.vervaldatum+"T12:00:00").toLocaleDateString("nl-NL")}</div>` : ""}
+      ${t.omschrijving?`<div class="taak-omsch">${t.omschrijving}</div>`:""}
+      ${t.vervaldatum?`<div class="taak-datum">📅 ${new Date(t.vervaldatum+"T12:00:00").toLocaleDateString("nl-NL")}</div>`:""}
     </div>
     <button class="btn-danger" onclick="verwijderTaak('${t.id}')">🗑</button>
   </div>`;
@@ -364,34 +301,34 @@ function setFilter(f) { huidigFilter = f; renderFilters(); renderTaken(); }
 
 function renderTaken() {
   const el = document.getElementById("taken-lijst");
+  const vandaag = new Date().toISOString().split("T")[0];
   const nu = new Date();
-  const vandaag = nu.toISOString().split("T")[0];
 
-  let basis = huidigFilter === "Voltooid" ? taken.filter(t => t.voltooid)
-    : huidigFilter === "Alles" ? taken.filter(t => !t.voltooid)
-    : taken.filter(t => t.categorie === huidigFilter && !t.voltooid);
+  let basis = huidigFilter==="Voltooid" ? taken.filter(t=>t.voltooid)
+    : huidigFilter==="Alles" ? taken.filter(t=>!t.voltooid)
+    : taken.filter(t=>t.categorie===huidigFilter&&!t.voltooid);
 
-  if (huidigFilter === "Voltooid") { el.innerHTML = basis.length ? basis.map(taakKaart).join("") : '<div class="empty">Geen voltooide taken.</div>'; return; }
+  if (huidigFilter==="Voltooid") { el.innerHTML = basis.length ? basis.map(taakKaart).join("") : '<div class="empty">Geen voltooide taken.</div>'; return; }
 
-  const doorgeschoven = basis.filter(t => t.vervaldatum && t.vervaldatum < vandaag);
-  const vandaagTaken  = basis.filter(t => t.vervaldatum === vandaag);
   const dag = nu.getDay()===0?6:nu.getDay()-1;
   const ma = new Date(nu); ma.setDate(nu.getDate()-dag); ma.setHours(0,0,0,0);
   const zo = new Date(ma); zo.setDate(ma.getDate()+6); zo.setHours(23,59,59,999);
-  const dezeWeek = basis.filter(t => { if (!t.vervaldatum||t.vervaldatum<=vandaag) return false; const d=new Date(t.vervaldatum+"T12:00:00"); return d>=ma&&d<=zo; });
-  const later    = basis.filter(t => t.vervaldatum && new Date(t.vervaldatum+"T12:00:00") > zo);
-  const geenDatum = basis.filter(t => !t.vervaldatum);
+
+  const doorgeschoven = basis.filter(t => t.vervaldatum && t.vervaldatum < vandaag);
+  const vandaagT      = basis.filter(t => t.vervaldatum === vandaag);
+  const dezeWeek      = basis.filter(t => { if (!t.vervaldatum||t.vervaldatum<=vandaag) return false; const d=new Date(t.vervaldatum+"T12:00:00"); return d>=ma&&d<=zo; });
+  const later         = basis.filter(t => t.vervaldatum && new Date(t.vervaldatum+"T12:00:00") > zo);
+  const geenDatum     = basis.filter(t => !t.vervaldatum);
 
   let html = "";
-  if (doorgeschoven.length) { html += `<div class="sectie-titel" style="color:#EF4444">⚠️ Doorgeschoven</div>`; html += doorgeschoven.map(taakKaart).join(""); }
+  if (doorgeschoven.length) { html += `<div class="sectie-titel" style="color:#EF4444">⚠️ Doorgeschoven</div>${doorgeschoven.map(taakKaart).join("")}`; }
   html += `<div class="sectie-titel" style="color:#60A5FA">📌 Vandaag</div>`;
-  html += vandaagTaken.length ? vandaagTaken.map(taakKaart).join("") : `<div style="color:#475569;font-size:13px;padding:8px 0 12px">Geen taken voor vandaag.</div>`;
+  html += vandaagT.length ? vandaagT.map(taakKaart).join("") : `<div style="color:#475569;font-size:13px;padding:8px 0 12px">Geen taken voor vandaag.</div>`;
   html += `<div class="sectie-titel" style="color:#60A5FA">📅 Deze week</div>`;
   html += dezeWeek.length ? dezeWeek.map(taakKaart).join("") : `<div style="color:#475569;font-size:13px;padding:8px 0 12px">Geen verdere taken deze week.</div>`;
-  if (later.length)    { html += `<div class="sectie-titel" style="color:#60A5FA">🗓️ Later</div>`;        html += later.map(taakKaart).join(""); }
-  if (geenDatum.length){ html += `<div class="sectie-titel" style="color:#64748B">📋 Geen datum</div>`;  html += geenDatum.map(taakKaart).join(""); }
-  if (!html) html = '<div class="empty">Geen taken gevonden.</div>';
-  el.innerHTML = html;
+  if (later.length)    html += `<div class="sectie-titel" style="color:#60A5FA">🗓️ Later</div>${later.map(taakKaart).join("")}`;
+  if (geenDatum.length) html += `<div class="sectie-titel" style="color:#64748B">📋 Geen datum</div>${geenDatum.map(taakKaart).join("")}`;
+  el.innerHTML = html || '<div class="empty">Geen taken gevonden.</div>';
 }
 
 function renderStats() {
@@ -414,12 +351,12 @@ async function maakAfspraak(afsprData) {
   const datum  = afsprData?.datum || document.getElementById("afspr-datum").value;
   const start  = afsprData?.startTijd || document.getElementById("afspr-start").value;
   if (!titel||!datum||!start) { toonMelding("Vul titel, datum en starttijd in.", "error"); return null; }
-  const afspraak = afsprData || { titel, datum, startTijd: start, eindTijd: document.getElementById("afspr-eind").value||start, locatie: document.getElementById("afspr-locatie").value, deelnemers: "" };
+  const afspraak = afsprData || { titel, datum, startTijd:start, eindTijd:document.getElementById("afspr-eind").value||start, locatie:document.getElementById("afspr-locatie").value, deelnemers:"" };
   const result = await appsScript({ actie:"maak_afspraak", afspraak });
   if (result) {
     afspraken.unshift(result); renderAfspraken();
     if (!afsprData) document.getElementById("afspraak-formulier").style.display = "none";
-    toonMelding("Afspraak aangemaakt in Google Agenda! 📅");
+    toonMelding("Afspraak aangemaakt! 📅");
   }
   return result;
 }
@@ -436,71 +373,62 @@ function afspraakKaart(a) {
   return `<div class="card">
     <div style="display:flex;justify-content:space-between;align-items:flex-start">
       <div style="font-weight:700;font-size:15px;color:#F1F5F9">${isOutlook?"📧":"📅"} ${a.titel}</div>
-      ${!isOutlook ? `<button class="btn-danger" onclick="verwijderAfspraak('${a.id}')">🗑</button>` : ""}
+      ${!isOutlook?`<button class="btn-danger" onclick="verwijderAfspraak('${a.id}')">🗑</button>`:""}
     </div>
     <div style="font-size:13px;color:#60A5FA;margin-top:4px;font-weight:600">
-      ${a.datum ? new Date(a.datum+"T12:00:00").toLocaleDateString("nl-NL",{weekday:"long",day:"numeric",month:"long"}) : ""}
-      ${a.startTijd ? " · "+a.startTijd+(a.eindTijd&&a.eindTijd!==a.startTijd?" – "+a.eindTijd:"") : ""}
+      ${a.datum?new Date(a.datum+"T12:00:00").toLocaleDateString("nl-NL",{weekday:"long",day:"numeric",month:"long"}):""}
+      ${a.startTijd?" · "+a.startTijd+(a.eindTijd&&a.eindTijd!==a.startTijd?" – "+a.eindTijd:""):""}
     </div>
-    ${a.locatie ? `<div style="font-size:13px;color:#64748B;margin-top:3px">📍 ${a.locatie}</div>` : ""}
+    ${a.locatie?`<div style="font-size:13px;color:#64748B;margin-top:3px">📍 ${a.locatie}</div>`:""}
     <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px">
       <div style="font-size:11px;font-weight:600;color:${isOutlook?"#60A5FA":"#34D399"}">${isOutlook?"📧 Outlook Krimpenerwaard":"✓ Google Agenda"}</div>
-      ${a.datum&&!isOutlook ? `<a href="https://calendar.google.com/calendar/r/day/${a.datum.replace(/-/g,'/')}?q=${encodeURIComponent(a.titel)}" target="_blank"
-        style="font-size:12px;color:#60A5FA;font-weight:600;text-decoration:none;background:#0F172A;padding:4px 10px;border-radius:8px;border:1px solid #2563EB44">📅 Open dag →</a>` : ""}
+      ${a.datum&&!isOutlook?`<a href="https://calendar.google.com/calendar/r/day/${a.datum.replace(/-/g,'/')}?q=${encodeURIComponent(a.titel)}" target="_blank"
+        style="font-size:12px;color:#60A5FA;font-weight:600;text-decoration:none;background:#0F172A;padding:4px 10px;border-radius:8px;border:1px solid #2563EB44">📅 Open dag →</a>`:""}
     </div>
   </div>`;
 }
 
 function renderAfspraken() {
   const el = document.getElementById("afspraken-lijst");
+  const vandaag = new Date().toISOString().split("T")[0];
   const nu = new Date();
-  const vandaag = nu.toISOString().split("T")[0];
-
-  // Combineer en filter op vandaag of later
-  const alle = [...afspraken, ...afsprakenIcs]
-    .filter(a => a.datum >= vandaag)
-    .sort((a,b) => (a.datum+a.startTijd).localeCompare(b.datum+b.startTijd));
-
-  if (!alle.length) { el.innerHTML = '<div class="empty"><div style="font-size:40px;margin-bottom:10px">📅</div>Geen afspraken gevonden.</div>'; return; }
-
   const dag = nu.getDay()===0?6:nu.getDay()-1;
   const ma = new Date(nu); ma.setDate(nu.getDate()-dag); ma.setHours(0,0,0,0);
   const zo = new Date(ma); zo.setDate(ma.getDate()+6); zo.setHours(23,59,59,999);
 
+  const alle = [...afspraken, ...afsprakenIcs]
+    .filter(a => a.datum >= vandaag)
+    .sort((a,b) => (a.datum+a.startTijd).localeCompare(b.datum+b.startTijd));
+
+  if (!alle.length) { el.innerHTML='<div class="empty"><div style="font-size:40px;margin-bottom:10px">📅</div>Geen afspraken gevonden.</div>'; return; }
+
   const vandaagA  = alle.filter(a => a.datum === vandaag);
-  const dezeWeekA = alle.filter(a => { const d=new Date(a.datum+"T12:00:00"); return a.datum!==vandaag && d>=ma && d<=zo; });
+  const dezeWeekA = alle.filter(a => { const d=new Date(a.datum+"T12:00:00"); return a.datum!==vandaag&&d>=ma&&d<=zo; });
   const laterA    = alle.filter(a => new Date(a.datum+"T12:00:00") > zo);
 
-  let html = "";
-  html += `<div class="sectie-titel" style="color:#60A5FA">📌 Vandaag</div>`;
+  let html = `<div class="sectie-titel" style="color:#60A5FA">📌 Vandaag</div>`;
   html += vandaagA.length ? vandaagA.map(afspraakKaart).join("") : `<div style="color:#475569;font-size:13px;padding:8px 0 12px">Geen afspraken vandaag.</div>`;
   html += `<div class="sectie-titel" style="color:#60A5FA">📅 Deze week</div>`;
   html += dezeWeekA.length ? dezeWeekA.map(afspraakKaart).join("") : `<div style="color:#475569;font-size:13px;padding:8px 0 12px">Geen verdere afspraken deze week.</div>`;
-  if (laterA.length) { html += `<div class="sectie-titel" style="color:#60A5FA">🗓️ Later</div>`; html += laterA.map(afspraakKaart).join(""); }
+  if (laterA.length) html += `<div class="sectie-titel" style="color:#60A5FA">🗓️ Later</div>${laterA.map(afspraakKaart).join("")}`;
   el.innerHTML = html;
 }
 
 // ── ICS PARSER ────────────────────────────────────────────────
 function parseIcs(tekst) {
-  tekst = tekst.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
-  tekst = tekst.replace(/\n[ \t]/g, ""); // vouwing ongedaan maken
-
+  tekst = tekst.replace(/\r\n/g,"\n").replace(/\r/g,"\n").replace(/\n[ \t]/g,"");
   const events = [];
   let inEvent = false, huidig = {};
-
   for (const raw of tekst.split("\n")) {
-    const regel = raw.trim();
-    if (!regel) continue;
-    if (regel === "BEGIN:VEVENT") { inEvent = true; huidig = {}; continue; }
-    if (regel === "END:VEVENT")   { inEvent = false; if (huidig.DTSTART) events.push({...huidig}); continue; }
+    const r = raw.trim();
+    if (!r) continue;
+    if (r==="BEGIN:VEVENT") { inEvent=true; huidig={}; continue; }
+    if (r==="END:VEVENT")   { inEvent=false; if (huidig.DTSTART) events.push({...huidig}); continue; }
     if (!inEvent) continue;
-    const idx = regel.indexOf(":");
-    if (idx === -1) continue;
-    const sleutel = regel.substring(0, idx).split(";")[0].toUpperCase().trim();
-    const waarde  = regel.substring(idx + 1).trim();
-    huidig[sleutel] = waarde;
+    const idx = r.indexOf(":");
+    if (idx===-1) continue;
+    huidig[r.substring(0,idx).split(";")[0].toUpperCase().trim()] = r.substring(idx+1).trim();
   }
-
   const pad = n => String(n).padStart(2,"0");
   const parseDt = s => {
     if (!s) return null;
@@ -510,55 +438,42 @@ function parseIcs(tekst) {
     if (d) return new Date(`${d[1]}-${d[2]}-${d[3]}T00:00:00`);
     return null;
   };
-
-  // Dedupliceer op UID
   const gezien = new Set();
   return events
-    .filter(ev => { if (!ev.UID||!gezien.has(ev.UID)) { if(ev.UID) gezien.add(ev.UID); return true; } return false; })
+    .filter(ev => { if (!ev.UID||!gezien.has(ev.UID)){if(ev.UID)gezien.add(ev.UID);return true;}return false; })
     .map(ev => {
-      const start = parseDt(ev.DTSTART);
-      const eind  = parseDt(ev.DTEND);
-      if (!start) return null;
-      return {
-        id: "ics_" + (ev.UID||Math.random().toString(36).substr(2,8)).replace(/\s/g,"").substring(0,20),
-        titel: ev.SUMMARY || "(geen titel)",
-        datum: `${start.getFullYear()}-${pad(start.getMonth()+1)}-${pad(start.getDate())}`,
-        startTijd: `${pad(start.getHours())}:${pad(start.getMinutes())}`,
-        eindTijd: eind ? `${pad(eind.getHours())}:${pad(eind.getMinutes())}` : "",
-        locatie: ev.LOCATION || "",
-        bron: "outlook"
-      };
+      const s=parseDt(ev.DTSTART), e=parseDt(ev.DTEND);
+      if (!s) return null;
+      return { id:"ics_"+(ev.UID||Math.random().toString(36).substr(2,8)).replace(/\s/g,"").substring(0,20), titel:ev.SUMMARY||"(geen titel)", datum:`${s.getFullYear()}-${pad(s.getMonth()+1)}-${pad(s.getDate())}`, startTijd:`${pad(s.getHours())}:${pad(s.getMinutes())}`, eindTijd:e?`${pad(e.getHours())}:${pad(e.getMinutes())}` :"", locatie:ev.LOCATION||"", bron:"outlook" };
     }).filter(Boolean);
 }
 
 // ── SPRAAK ────────────────────────────────────────────────────
 function setupSpreak() {
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) { document.getElementById("mic-btn").style.display = "none"; return; }
+  const SR = window.SpeechRecognition||window.webkitSpeechRecognition;
+  if (!SR) { document.getElementById("mic-btn").style.display="none"; return; }
   herkenning = new SR();
-  herkenning.lang = "nl-NL"; herkenning.continuous = false; herkenning.interimResults = true;
+  herkenning.lang="nl-NL"; herkenning.continuous=false; herkenning.interimResults=true;
   herkenning.onresult = e => {
-    const t = Array.from(e.results).map(r=>r[0].transcript).join("");
-    document.getElementById("chat-input").value = t;
-    if (e.results[e.results.length-1].isFinal) { stopSpreken(); setTimeout(stuurChat, 300); }
+    document.getElementById("chat-input").value = Array.from(e.results).map(r=>r[0].transcript).join("");
+    if (e.results[e.results.length-1].isFinal) { stopSpreken(); setTimeout(stuurChat,300); }
   };
   herkenning.onend = stopSpreken;
   herkenning.onerror = stopSpreken;
 }
-
-function toggleSpreken() { luistert ? stopSpreken() : startSpreken(); }
+function toggleSpreken() { luistert?stopSpreken():startSpreken(); }
 function startSpreken() {
   if (!herkenning) return;
-  luistert = true;
+  luistert=true;
   document.getElementById("mic-btn").classList.add("luisteren");
-  document.getElementById("mic-btn").textContent = "🔴";
+  document.getElementById("mic-btn").textContent="🔴";
   document.getElementById("spraak-status").classList.add("zichtbaar");
   herkenning.start();
 }
 function stopSpreken() {
-  luistert = false;
+  luistert=false;
   document.getElementById("mic-btn").classList.remove("luisteren");
-  document.getElementById("mic-btn").textContent = "🎤";
+  document.getElementById("mic-btn").textContent="🎤";
   document.getElementById("spraak-status").classList.remove("zichtbaar");
   try { herkenning.stop(); } catch {}
 }
@@ -566,13 +481,13 @@ function spreekUit(tekst) {
   if (!window.speechSynthesis) return;
   window.speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(tekst.replace(/[✅🗑️📅⚠️💬👋🎤]/g,"").substring(0,200));
-  u.lang = "nl-NL"; u.rate = 1.05;
+  u.lang="nl-NL"; u.rate=1.05;
   window.speechSynthesis.speak(u);
 }
 
 // ── CHAT ──────────────────────────────────────────────────────
 function voegChatBericht(rol, inhoud) {
-  chatHistory.push({ role: rol, content: inhoud });
+  chatHistory.push({ role:rol, content:inhoud });
   document.getElementById("chat-msgs").innerHTML = chatHistory.map(m=>`
     <div class="chat-bubble-wrap ${m.role}">
       ${m.role==="assistant"?'<div class="chat-avatar">🤖</div>':""}
@@ -581,44 +496,19 @@ function voegChatBericht(rol, inhoud) {
   document.getElementById("chat-msgs").scrollTop = 99999;
 }
 
-async function slaGeheugenOp() {
-  if (geheugen.length > 80) {
-    const oud = geheugen.slice(0,60), rest = geheugen.slice(60);
-    try {
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
-        method:"POST",
-        headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
-        body: JSON.stringify({ model:"claude-sonnet-4-20250514", max_tokens:1000, messages:[{ role:"user", content:`Maak een beknopte samenvatting in het Nederlands als bullet points van dit gespreksgeheugen:\n\n${oud.map(m=>`${m.role==="user"?"Directeur":"Assistent"}: ${m.content}`).join("\n")}` }] })
-      });
-      const data = await res.json();
-      const samenvatting = data.content?.map(b=>b.text||"").join("").trim();
-      if (samenvatting) geheugen = [{ role:"system_summary", content: samenvatting }, ...rest];
-    } catch {}
-  }
-  try { await window.storage.set("tm_geheugen", JSON.stringify(geheugen)); } catch {}
-}
-
 async function stuurChat() {
   const input = document.getElementById("chat-input");
   const tekst = input.value.trim();
   if (!tekst) return;
-  if (!apiKey) { toonMelding("Vul uw API sleutel in bij ⚙️ Instellingen.", "error"); setTab("instellingen"); return; }
   input.value = "";
   voegChatBericht("user", tekst);
   voegChatBericht("assistant", "⏳ Even geduld...");
 
-  geheugen.push({ role:"user", content: tekst });
-  await slaGeheugenOp();
-
   const nu = new Date(), morgen = new Date();
   morgen.setDate(nu.getDate()+1);
   const fmt = d => d.toISOString().split("T")[0];
-  const geheugenTekst = geheugen.slice(-30).map(m => m.role==="system_summary" ? `[SAMENVATTING]:\n${m.content}` : `${m.role==="user"?"Directeur":"Assistent"}: ${m.content}`).join("\n");
 
   const sys = `Je bent een slimme Nederlandse persoonlijke assistent voor een directeur.
-
-GEHEUGEN:
-${geheugenTekst||"Geen eerdere context."}
 
 Huidige taken:
 ${taken.map(t=>`- [${t.id}] [${t.categorie}] ${t.titel}${t.vervaldatum?" (voor "+t.vervaldatum+")":""}${t.voltooid?" ✓":""}`).join("\n")||"Geen taken"}
@@ -626,8 +516,8 @@ ${taken.map(t=>`- [${t.id}] [${t.categorie}] ${t.titel}${t.vervaldatum?" (voor "
 Aankomende afspraken:
 ${[...afspraken,...afsprakenIcs].filter(a=>a.datum>=fmt(nu)).slice(0,8).map(a=>`- ${a.datum} ${a.startTijd}: ${a.titel}`).join("\n")||"Geen afspraken"}
 
-Categorieën: Werk, Persoonlijk, Gezondheid, Yenz
 Vandaag: ${fmt(nu)} | Morgen: ${fmt(morgen)}
+Categorieën: Werk, Persoonlijk, Gezondheid, Yenz
 
 Antwoord ALLEEN in JSON zonder markdown:
 {"antwoord":"...","acties":[]}
@@ -639,18 +529,24 @@ Acties:
 {"type":"verwijder_afspraak","id":"..."}`;
 
   try {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
+    const res = await fetch(SCRIPT_URL, {
       method:"POST",
-      headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
-      body: JSON.stringify({ model:"claude-sonnet-4-20250514", max_tokens:1000, system:sys, messages: chatHistory.filter(m=>m.content!=="⏳ Even geduld...").slice(-8) })
+      body: JSON.stringify({
+        actie:"chat",
+        system: sys,
+        messages: chatHistory.filter(m=>m.content!=="⏳ Even geduld...").slice(-8),
+        geheugenBericht: { role:"user", content:tekst }
+      })
     });
-    const data = await res.json();
+    const wrapper = await res.json();
+    if (!wrapper.succes) throw new Error(wrapper.fout);
+    const data = wrapper.data;
     if (data.error) { chatHistory.pop(); voegChatBericht("assistant","❌ API fout: "+data.error.message); return; }
 
     const raw = data.content?.map(b=>b.text||"").join("").trim();
     let parsed;
     try { parsed = JSON.parse(raw.replace(/```json|```/g,"").trim()); }
-    catch { parsed = { antwoord: raw, acties:[] }; }
+    catch { parsed = { antwoord:raw, acties:[] }; }
 
     const resultaten = [];
     for (const actie of (parsed.acties||[])) {
@@ -670,16 +566,13 @@ Acties:
       }
     }
 
-    const volledig = [parsed.antwoord, ...resultaten].filter(Boolean).join("\n\n");
     chatHistory.pop();
-    voegChatBericht("assistant", volledig);
+    voegChatBericht("assistant", [parsed.antwoord,...resultaten].filter(Boolean).join("\n\n"));
     spreekUit(parsed.antwoord);
-    geheugen.push({ role:"assistant", content: parsed.antwoord });
-    await slaGeheugenOp();
 
   } catch(e) {
     chatHistory.pop();
-    voegChatBericht("assistant", "Mijn excuses, er ging iets mis: " + e.message);
+    voegChatBericht("assistant","Mijn excuses, er ging iets mis: "+e.message);
   }
 }
 </script>
